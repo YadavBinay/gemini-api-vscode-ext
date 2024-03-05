@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/12.1.0/markdown-it.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+   
+    <link rel="icon" type="image/png" href="icon.png" />
+    <!-- Include the default theme for highlight.js -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/atelier-dune.css"
+    />
+    <title>GEMINI API CHAT</title>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+      }
+      body::-webkit-scrollbar {
+        display: none;
+      }
+      .container {
+        margin: auto;
+        padding-top: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+      .title {
+        --speed: 4s;
+        font-size: 4em;
+        font-weight: 900;
+        font-family: cursive;
+        cursor: help;
+        display: flex;
+        flex-wrap: wrap;
+        /* pointer-events: none; */
+      }
+      .title > p {
+        /* font-size: 5rem; */
+        /* border: 1px solid teal; */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: none;
+        animation: webrotate calc(var(--speed) / 2) linear infinite;
+      }
+      .title:hover {
+        --speed: 2s;
+      }
+      @keyframes webrotate {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .subtitle {
+        font-weight: 600;
+        font-family: "Courier New", Courier, monospace;
+      }
+      #chat-area {
+        width: 90%;
+        max-width: 90vw;
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+        padding-bottom: 3rem;
+        /* min-height: 7cqw; */
+        justify-content: flex-end;
+      }
+      .snippets {
+        gap: 2rem;
+      }
+      .card {
+        margin-bottom: 20px;
+        padding: 20px;
+        background-color: #f9f9f9ac;
+        border-radius: 8px;
+        box-shadow: 0 0 10px;
+        transition: 0.2s linear;
+        cursor: cell;
+        position: relative;
+      }
+      .card:hover {
+        box-shadow: 0 0 20px;
+        background-color: antiquewhite;
+        scale: 1.1;
+      }
+      .card::after {
+        content: "→";
+        position: absolute;
+        /* visibility: hidden; */
+        transition: 0.25s ease-in-out;
+      }
+      .card:hover::after {
+        color: #4caf50;
+        font-size: xx-large;
+        font-weight: bolder;
+        transform: translateX(50px);
+      }
+      .card h2 {
+        margin-top: 0;
+        color: #333;
+      }
+      .card p {
+        margin-bottom: 0;
+        color: #191919;
+        font-family: serif;
+      }
+      .card code {
+        color: green;
+      }
+      .input {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        padding: 5px;
+        padding-bottom: 4px;
+        background: rgb(0, 0, 0);
+        border-radius: 0.5rem 0.5rem 0 0;
+      }
+      #inputbox {
+        flex: 1;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        resize: vertical;
+      }
+      textarea {
+        display: inline-block;
+        resize: vertical;
+        height: auto;
+        font-size: large;
+        align-items: center;
+        padding-top: 1rem;
+        padding-inline: 1rem;
+      }
+      textarea::placeholder {
+        font-size: xx-large;
+      }
+      textarea::-webkit-scrollbar {
+        width: 10px;
+        display: none;
+      }
+      textarea::-webkit-scrollbar-thumb {
+        background-color: #4caf50;
+        display: none;
+      }
+      textarea::-webkit-resizer {
+        display: none;
+      }
+      #sendMessage {
+        position: relative;
+        font-weight: bolder;
+        font-size: larger;
+        padding: 8px 20px;
+        border: none;
+        background-color: #4caf50;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #sendMessage:hover,
+      #sendMessage:focus {
+        background-color: rgb(100, 183, 247);
+      }
+      #sendMessage img {
+        --size: 30px;
+        width: var(--size);
+        height: var(--size);
+      }
+      .message {
+        padding: 1rem;
+        border-radius: 2rem;
+        font-size: 1.2rem;
+        position: relative;
+        box-shadow: 0 0 4px;
+        background: #77747461;
+        max-width: 80%;
+      }
+      .user-message {
+        text-align: right;
+        align-self: flex-end;
+        margin-right: 2.5rem;
+        border-radius: 2rem 2rem 0px 2rem;
+      }
+      .model-message {
+        text-align: left;
+        align-self: flex-start;
+        margin-left: 2.5rem;
+        margin-bottom: 2.5rem;
+        border: 2px solid blueviolet;
+        border-radius: 2rem 2rem 2rem 2px;
+        padding-left: 2.1rem;
+        transition: all 0.5s linear;
+        text-wrap: wrap;
+        min-width: 70vw;
+      }
+      .message::after {
+        content: "";
+        height: 20px;
+        width: 20px;
+        position: absolute;
+        font-size: 2rem;
+      }
+      .user-message::after {
+        right: -30px;
+        content: "👽";
+      }
+      .model-message::after {
+        left: -45px;
+        content: "🤖";
+        bottom: 0;
+      }
+      .animate {
+        background-image: linear-gradient(
+          45deg,
+          rgb(247, 108, 108),
+          rgb(45, 239, 77),
+          rgb(94, 43, 245),
+          rgb(247, 108, 108)
+        );
+        background-size: 200%;
+        animation: loading 3s linear infinite reverse;
+      }
+      @keyframes loading {
+        to {
+          background-position: 100%;
+          filter: hue-rotate(360deg);
+        }
+      }
+
+      pre {
+        position: relative;
+        border: 1px dashed green;
+        overflow-x: auto;
+        border-radius: 1rem;
+        padding: 1.1rem;
+        margin: 5px;
+        cursor: copy;
+      }
+      pre::-webkit-scrollbar {
+        display: none;
+      }
+      pre::after {
+        display: none;
+        content: "";
+        background-size: contain;
+        background: url("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiL1WxL_8ni7MZxJZVEXKr93kWcQRG2Y0QMfQ4C0pUDJ_tffDDBTvkIp_uEsZCqs7nW6LiDfXG-Gavci_Sm_hEa9bQoD4c_NYGTzzqF9Ewx-2ilgqmVb_hjomuAXeSxDwqjgxuDMIU3uC9hyphenhyphenERL1GwY_4JTsLzDsENlr2PAAN3oz0Ez7oymiYyiFSmvDPFD/s24/content_copy_FILL0_wght400_GRAD0_opsz24.png")
+          no-repeat;
+        height: 30px;
+        width: 20px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 5px;
+      }
+
+      pre:hover::after {
+        display: block;
+      }
+      .snippets {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(200px, 300px));
+        align-self: center;
+      }
+      .setting {
+        margin: 5px;
+        transform: scale(2);
+        border-radius: 50%;
+        border: none;
+        position: fixed;
+        z-index: 5;
+        top: 20px;
+        right: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2px;
+        background: transparent;
+      }
+      .setting:hover {
+        transform: scale(2.3) rotate(360deg);
+      }
+      .setting-container {
+        width: 100vw;
+        height: 100vh;
+        position: fixed;
+        bottom: 0;
+        z-index: 2;
+        background-color: #00000098;
+        backdrop-filter: blur(2px);
+        /* display: flex; */
+        display: none;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      .close {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: scale 0.2s ease-in-out;
+      }
+      .close:hover {
+        scale: 1.5;
+      }
+      .setup {
+        align-self: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+      }
+      form {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button[type="submit"] {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
+      button[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+      form > a {
+        margin-top: o;
+        text-decoration: none;
+      }
+      form > a:hover {
+        background: lightgray;
+      }
+      @media (max-width: 800px) {
+        #chat-area > *,
+        .title {
+          scale: 0.9;
+        }
+      }
+      @media (max-width: 450px) {
+        #chat-area,
+        .title {
+          scale: 0.7;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <button id="setting" class="setting">⚙️</button>
+      <div class="setting-container">
+        <div class="setting-area">
+          <div class="setup">
+            <div class="close">❌</div>
+            <form id="myForm">
+              <label for="name">Name:</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Enter your name (optional)"
+              />
+
+              <label for="key">Key:</label>
+              <input
+                type="text"
+                id="key"
+                name="key"
+                placeholder="Enter your API key"
+                required
+              />
+
+              <a href="https://aistudio.google.com/app/apikey">Get Api Key</a>
+              <button type="submit">Submit</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="title">
+        GEMINI
+        <p>🕸️</p>
+        WEB
+      </div>
+      <p class="subtitle">How Can I Assit You Today ?</p>
+      <div id="chat-area">
+        <div class="snippets">
+          <div class="card">
+            <h2>Generate Code</h2>
+            <p>This command generates a unique code for each user.</p>
+            <code>generateCode()</code>
+          </div>
+          <div class="card">
+            <h2>Generate Story</h2>
+            <p>This command generates a random story.</p>
+            <code>generateStory()</code>
+          </div>
+          <div class="card">
+            <h2>Generate Idea</h2>
+            <p>This command generates a unique business ideas.</p>
+            <code>generateIdea()</code>
+          </div>
+          <div class="card">
+            <h2>Generate Money</h2>
+            <p>This command generates a random ideas to make Money.</p>
+            <code>generateMoney()</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="input">
+        <textarea
+          id="inputbox"
+          autocomplete="on"
+          placeholder="Message Gemini...."
+        ></textarea>
+        <button id="sendMessage">
+          <img
+            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiBfnLe2t6C58f0MVNq-7ZsyUpnHbZ9Bzag7FZnNpyoBTY77Hin-jqowq3iAuyR1-0xXY0y95sHil-6Quq_7I8CHaLP17D500I8FRxX4bw2HG0se8xPRzIh4HYDuKWGljC_1CdbfYY2-7ae5St9eTAtd-Q8lNsCPTIFAbU_8l0wXvmtXxXpD076G_YHULX8/s320/sendarrow.webp"
+            alt="SEND"
+          />
+        </button>
+      </div>
+    </div>
+
+    <script type="module">
+      //imports google Gemini Api
+      import {
+        GoogleGenerativeAI,
+        HarmCategory,
+        HarmBlockThreshold,
+      } from "https://cdn.skypack.dev/@google/generative-ai";
+
+      let isShown = false;
+      const inputBox = document.getElementById("inputbox");
+
+      function config(apikey) {
+        let API_KEY = apikey;
+        const MODEL_NAME = "gemini-1.0-pro";
+
+        if (!localStorage.getItem("key") || localStorage.getItem("key") == "") {
+          const Alert = document.createElement("div");
+          Alert.innerHTML =
+            "<p style='color:red; '>⚠️API KEY is Required To Chat with Gemini</p>";
+          document.querySelector("form").appendChild(Alert);
+          tooglesetting();
+        }
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+
+        const generationConfig = {
+          temperature: 0.9,
+          topK: 1,
+          topP: 1,
+          maxOutputTokens: 2048,
+        };
+
+        const safetySettings = [
+          {
+            category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+        ];
+
+        const chat = model.startChat({
+          generationConfig,
+          safetySettings,
+          history: [],
+        });
+
+        return chat;
+      }
+
+      function createMessage(className, text) {
+        const message = document.createElement("div");
+        message.classList.add("message", className);
+        message.textContent = text;
+        return message;
+      }
+      function scrollToBottom(num) {
+        window.scrollTo(num, document.body.scrollHeight);
+      }
+      async function runChat(prompt) {
+        const chat = await config(localStorage.getItem("key"));
+        const chatArea = document.getElementById("chat-area");
+        console.log(prompt);
+        if (prompt == "") return;
+        inputBox.value = "";
+        document.getElementById("chat-area").scrollTop = chatArea.scrollHeight;
+        const userMessage = createMessage("user-message", prompt);
+        chatArea.appendChild(userMessage);
+
+        const modelMessage = createMessage("model-message", ""); // Create model message without "animate" class initially
+        chatArea.appendChild(modelMessage);
+        scrollToBottom(0);
+
+        modelMessage.classList.add("animate"); // Add "animate" class to model message to trigger animation
+        try {
+          var result = await chat.sendMessage(prompt);
+          const response = result.response;
+          const md = window.markdownit({
+            highlight: (code, lang) => {
+              if (lang && window.hljs.getLanguage(lang)) {
+                console.log(lang);
+                console.log(code);
+
+                return window.hljs.highlight(lang, code).value; // highliting a code area 
+              }
+              return ""; // Use external default escaping
+            },
+          });
+          modelMessage.innerHTML = await md.render(response.text());
+        } catch (error) {
+          console.log(error.toString());
+          //An internal error has occurred. Please retry
+          // API key not valid. Please pass a valid API key
+          // Candidate was blocked due to RECITATION
+          if (error.toString().match("API key expired")) {
+            modelMessage.textContent = "🗝️API KEY EXPIRED ❌ PLEASE RENEW";
+          } else if (error.toString().match("Failed to fetch")) {
+            modelMessage.textContent =
+              "🌐Failed To Fetch Try Checking Internet or API Key\n ⚠️Check console For More Info";
+          } else if (
+            error
+              .toString()
+              .match("API key not valid. Please pass a valid API key")
+          ) {
+            modelMessage.textContent =
+              "🗝️API key not valid. Please pass a valid API key";
+          } else if (
+            error
+              .toString()
+              .match("An internal error has occurred. Please retry")
+          ) {
+            modelMessage.textContent =
+              "🌐Failed To Fetch An internal error has occurred. Please retry";
+          } else if (
+            error.toString().match("Candidate was blocked due to RECITATION")
+          ) {
+            modelMessage.textContent = `You were blocked due to RECITATION 🚫 \n Solutio: 
+            \n Goto Googel Api Creator Delete your Current API KEY \n Create New API Key || \n
+            ADD New API From setup TAb by clicking on Gear Icon in Top Right corner of Page`;
+          } else {
+            modelMessage.textContent =
+              "🌐Something Wrong Try Checking Internet or API Key\n ⚠️Check console For More Info";
+          }
+        }
+        modelMessage.classList.remove("animate"); // Remove "animate" class after response is rendered
+        scrollToBottom(-100);
+        document
+          .querySelectorAll("pre")
+          .forEach((element) =>
+            element.addEventListener("click", () => copyText(element))
+          );
+      }
+      function copyText(element) {
+        const textToCopy = element.innerText;
+        navigator.clipboard
+          .writeText(textToCopy)
+          .then(() => {
+            console.log("Text copied:", textToCopy);
+          })
+          .catch((err) => {
+            console.error("Error copying text: ", err);
+            alert("Failed to copy text to clipboard.");
+          });
+      }
+
+      const settingbtn = document.getElementById("setting");
+      settingbtn.addEventListener("click", tooglesetting);
+      document.querySelector(".close").addEventListener("click", tooglesetting);
+      function tooglesetting() {
+        console.log("setting func");
+        const settingcontainer = document.querySelector(".setting-container");
+        if (!isShown) {
+          settingcontainer.style.display = "flex";
+          isShown = true;
+        } else {
+          settingcontainer.style.display = "none";
+          isShown = false;
+        }
+      }
+
+      document
+        .getElementById("myForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Prevent default form submission
+
+          // Get the values from the form fields
+          var name = document.getElementById("name").value;
+          var key = document.getElementById("key").value;
+
+          // Here you can perform any action with the submitted data, like sending it to an API or saving it locally
+          console.log("Name:", name);
+          console.log("Key:", key);
+          //Api-key --
+          localStorage.setItem("key", key);
+          localStorage.setItem("name", name);
+          const settingcontainer = document.querySelector(".setting-container");
+          settingcontainer.style.display = "none";
+          isShown = false;
+          // Reset the form fields after submission (optional)
+          document.getElementById("myForm").reset();
+        });
+      document
+        .querySelectorAll(".card")
+        .forEach((card) =>
+          card.addEventListener("click", () => runChat(card.textContent))
+        );
+
+      document
+        .getElementById("sendMessage")
+        .addEventListener("click", () => runChat(inputBox.value));
+    </script>
+  </body>
+</html>

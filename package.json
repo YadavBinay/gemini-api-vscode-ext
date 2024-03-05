@@ -1,0 +1,53 @@
+{
+  "name": "gemini-chat",
+  "displayName": "Gemini Chat",
+  "description": "Chat with Gemini using the Gemini API within VSCode.",
+  "version": "0.0.1",
+  "icon": "logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YadavBinay/gemini-api-vscode-ext.git"
+  },
+  "author": "galacticGit",
+  "publisher": "galacticGit",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "geminiChat",
+          "name": "Gemini Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "gemini.openWebview",
+        "title": "Open Gemini Chat"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "yarn run lint",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.60.0",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^4.5.4"
+  },
+  "dependencies": {}
+}
